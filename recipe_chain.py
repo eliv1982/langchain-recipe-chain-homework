@@ -108,7 +108,10 @@ def build_review_chain(llm: ChatOpenAI):
             (
                 "human",
                 "Проверь и улучши черновик рецепта. Сохрани все разделы, исправь неточности.\n\n"
+                "Исходный запрос пользователя:\n{user_request}\n\n"
                 "Черновик рецепта:\n{recipe_draft}\n\n"
+                "Сверь рецепт с исходным запросом: ингредиенты, ограничения (время, "
+                "оборудование, диета) и ожидания должны соблюдаться.\n\n"
                 "В финальной версии обязательно должны быть разделы:\n"
                 "- Название блюда\n"
                 "- Краткое описание\n"
@@ -175,7 +178,9 @@ def run_chain(user_request: str) -> tuple[str, str, str, str]:
     print_stage_result("ЭТАП 3/4 — ЧЕРНОВИК РЕЦЕПТА", recipe_draft)
 
     print("[4/4] Проверка результата...")
-    final_recipe = review_chain.invoke({"recipe_draft": recipe_draft})
+    final_recipe = review_chain.invoke(
+        {"user_request": user_request, "recipe_draft": recipe_draft}
+    )
     print_stage_result("ЭТАП 4/4 — ФИНАЛЬНАЯ ВЕРСИЯ ПОСЛЕ РЕВЬЮ", final_recipe)
 
     return analysis, strategy, recipe_draft, final_recipe

@@ -1,36 +1,40 @@
 # Recipe Chain
 
-Учебный Python-проект: генерация рецепта по запросу пользователя через **цепочку из 4 последовательных LLM-запросов** (prompt chain) на базе LangChain и OpenAI.
+Small educational Python project: generate a recipe from a natural-language request using a **four-stage LLM prompt chain** built with LangChain and OpenAI.
 
-## Описание
+The scope is intentionally narrow — it demonstrates prompt decomposition and sequential chaining, not a production cooking assistant.
 
-Сложную задачу «придумай рецепт под мои ограничения» не решают одним большим промптом. Здесь она разбита на четыре логических шага: анализ → стратегия → черновик рецепта → проверка. Каждый шаг — отдельная LangChain-цепочка (`ChatPromptTemplate` → LLM → `StrOutputParser`).
+## What it demonstrates
 
-## Четыре этапа цепочки
+A complex task (“create a recipe that fits my constraints”) is split into four focused LLM calls instead of one large prompt:
 
-| Этап | Функция | Вход | Выход |
-|------|---------|------|--------|
-| 1 | `build_analysis_chain` | Запрос пользователя | Структурированный анализ (ингредиенты, ограничения, ожидания) |
-| 2 | `build_strategy_chain` | Результат анализа | Стратегия приготовления (техника, этапы, оборудование) |
-| 3 | `build_recipe_chain` | Анализ + стратегия | Черновик рецепта с разделами |
-| 4 | `build_review_chain` | Черновик рецепта | Финальный рецепт с блоком «Проверка качества» |
+| Stage | Function | Input | Output |
+|-------|----------|-------|--------|
+| 1 | `build_analysis_chain` | User request | Structured analysis (ingredients, constraints, expectations) |
+| 2 | `build_strategy_chain` | Analysis | Cooking strategy (technique, steps, equipment) |
+| 3 | `build_recipe_chain` | Analysis + strategy | Recipe draft with sections |
+| 4 | `build_review_chain` | **Original request + draft** | Final recipe with a quality-review section |
 
-Функция `run_chain(user_request)` вызывает этапы по порядку и передаёт выход предыдущего шага на вход следующего.
+`run_chain(user_request)` runs the stages in order and passes each output to the next step. The review stage receives both the original request and the draft so it can check constraint compliance.
 
-## Структура проекта
+## Project structure
 
 ```
 langchain-recipe-chain-homework/
-├── recipe_chain.py          # Основной скрипт и 4 цепочки
-├── requirements.txt         # Зависимости
-├── .env.example             # Шаблон переменных окружения
+├── recipe_chain.py              # Main script and four chains
+├── requirements.txt             # Pinned major-version bounds
+├── .env.example                 # Environment variable template
 ├── .gitignore
 ├── README.md
 └── examples/
-    └── sample_output.md     # Результат последнего запуска (генерируется скриптом)
+    ├── sample_chain_steps.md    # Committed example (full step-by-step trace)
+    ├── chain_steps.md           # Generated at runtime (gitignored)
+    └── sample_output.md         # Final recipe only, generated at runtime (gitignored)
 ```
 
-## Установка
+## Installation
+
+Requires Python 3.10+.
 
 ```bash
 python -m venv .venv
@@ -44,15 +48,19 @@ source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
-## Настройка `.env`
+## Environment configuration
 
-Скопируйте шаблон и укажите свой API-ключ:
+Copy the template and set your API key:
 
 ```bash
+# Windows
 copy .env.example .env
+
+# macOS / Linux
+cp .env.example .env
 ```
 
-Содержимое `.env`:
+`.env` contents:
 
 ```env
 OPENAI_API_KEY=sk-...
@@ -60,42 +68,42 @@ OPENAI_MODEL=gpt-4o-mini
 TEMPERATURE=0.2
 ```
 
-| Переменная | Описание |
-|------------|----------|
-| `OPENAI_API_KEY` | Ключ OpenAI (обязательно) |
-| `OPENAI_MODEL` | Модель, по умолчанию `gpt-4o-mini` |
-| `TEMPERATURE` | Температура генерации, по умолчанию `0.2` |
+| Variable | Description |
+|----------|-------------|
+| `OPENAI_API_KEY` | OpenAI API key (**required** for a real run) |
+| `OPENAI_MODEL` | Model name; default `gpt-4o-mini` |
+| `TEMPERATURE` | Sampling temperature; default `0.2` |
 
-## Пример запуска
+## How to run
 
 ```bash
 python recipe_chain.py "Хочу быстрый ужин из курицы, риса и овощей, без духовки, до 30 минут"
 ```
 
-В терминале появятся логи этапов `[1/4]` … `[4/4]`, затем финальный рецепт. Тот же текст сохранится в `examples/sample_output.md`.
+The script prints stage logs `[1/4]` … `[4/4]` and the final recipe in the terminal.
 
-Без аргументов скрипт покажет подсказку по использованию.
+Without arguments it prints usage help.
 
-## Что демонстрирует проект (prompt chains)
+## Sample output vs runtime artifacts
 
-- **Декомпозиция задачи** — вместо одного промпта четыре узкие роли (аналитик, методист, автор, редактор).
-- **Передача контекста** — каждый шаг получает только нужные данные от предыдущих шагов.
-- **LangChain LCEL** — цепочки собираются как `prompt | llm | StrOutputParser()`.
-- **Повторяемость** — одинаковый каркас для других предметных областей (план поездки, техдок и т.д.).
+| File | Role |
+|------|------|
+| `examples/sample_chain_steps.md` | **Committed** example showing all four stages — safe to browse in the repo |
+| `examples/chain_steps.md` | Written on each run; **gitignored** |
+| `examples/sample_output.md` | Final recipe only from the last run; **gitignored** |
 
-## Формат сдачи ДЗ
+Do not commit runtime-generated files.
 
-Рекомендуемые скриншоты для отчёта:
+## Limitations
 
-1. **Структура проекта** — дерево файлов в IDE или проводнике.
-2. **Файл `.env.example`** — без реального ключа; отдельно можно показать, что `.env` в `.gitignore`.
-3. **Установка зависимостей** — успешный `pip install -r requirements.txt`.
-4. **Запуск с запросом** — команда в терминале и логи `[1/4]` … `[4/4]`.
-5. **Финальный рецепт в терминале** — блок «ФИНАЛЬНЫЙ РЕЦЕПТ» с разделами (название, ингредиенты, шаги, «Проверка качества»).
-6. **Файл `examples/sample_output.md`** — сохранённый результат после запуска.
-7. **Фрагмент `recipe_chain.py`** — функции `build_*_chain` и `run_chain` (видно 4 отдельные цепочки).
-8. **Ошибка без ключа** (по желанию) — запуск без `OPENAI_API_KEY` и понятное сообщение об ошибке.
+- **Sequential LLM calls** — four separate API requests per run (latency and cost scale linearly).
+- **No deterministic validation** — there is no rule engine or schema check; quality depends on the model.
+- **Model-based review is not a guarantee** — the final review step can miss or misjudge constraint violations.
+- **Requires an OpenAI API key** — the script exits with a clear error if `OPENAI_API_KEY` is missing.
+- **Educational scope** — not suitable as-is for production use (no tests, no UI, no persistence).
 
-## Лицензия
+## Educational note
 
-Учебный проект для домашнего задания.
+This repository is a learning example for LangChain LCEL prompt chaining (`ChatPromptTemplate | llm | StrOutputParser()`). The same decomposition pattern applies to other domains (travel planning, technical docs, etc.).
+
+There is no open-source license file in this repository; treat it as a personal educational portfolio piece unless a license is added later.

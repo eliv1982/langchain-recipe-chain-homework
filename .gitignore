@@ -3,3 +3,4 @@
 __pycache__/
 *.pyc
 examples/sample_output.md
+examples/chain_steps.md
